@@ -3,7 +3,6 @@ setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
 set "EXPECTED_ORIGIN=git@github.com:2000Re/MosaicFocusTimer.git"
-set "TARGET_BRANCH=main"
 
 for /f "delims=" %%U in ('git remote get-url origin 2^>nul') do set "ORIGIN=%%U"
 if /I not "%ORIGIN%"=="%EXPECTED_ORIGIN%" (
@@ -17,8 +16,9 @@ if /I not "%ORIGIN%"=="%EXPECTED_ORIGIN%" (
 git add .
 git commit -m "Auto deploy"
 
-echo Deploying to %TARGET_BRANCH%...
-git push -f origin HEAD:%TARGET_BRANCH%
+echo Deploying to main and branch...
+
+git push -f origin HEAD:main HEAD:branch
 
 if %ERRORLEVEL% equ 0 (
     echo [SUCCESS] Deployment complete.
