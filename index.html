@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Mosaic Focus Timerは、集中を促すグリッドアニメーションと、新しいガジェットに出会えるポータルを融合した没入型タイマーです。">
     <title>Mosaic Focus Timer</title>
     <style>
         :root {
@@ -15,8 +16,11 @@
             margin: 0; padding: 0; height: 100%; width: 100%;
             overflow: hidden; background: var(--bg-color);
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            /* iOSでのスクロール・バウンス・長押しメニューを徹底的に抑制 */
             touch-action: none;
+            -webkit-touch-callout: none;
             user-select: none;
+            -webkit-user-select: none;
         }
 
         #grid {
@@ -35,8 +39,8 @@
             cursor: pointer; position: relative; z-index: 1;
         }
 
-        /* ホバー・アクティブ時の演出 */
-        .cell:hover, .cell:active {
+        /* ホバーおよびJSで付与するアクティブ状態 */
+        .cell:hover, .cell.active-touch {
             z-index: 10;
             transform: scale(1.15);
             filter: brightness(2.5) saturate(1.5);
@@ -80,7 +84,7 @@
     
     <div id="ui">
         <h1 id="label">FOCUS</h1>
-        <p id="status">Click a square to discover</p>
+        <p id="status">Trace to glow, Click to discover</p>
     </div>
 
     <script>
@@ -96,23 +100,9 @@
         // ==========================================
         const ASSOCIATE_ID = "mft041-22"; 
 
-        const adjectives = [
-            "minimalist", "retro", "portable", "smart", "premium", "industrial", "wooden", "high+end",
-            "ergonomic", "mechanical", "wireless", "silent", "heavy+duty", "compact", "waterproof",
-            "aluminum", "carbon+fiber", "stainless+steel", "titanium", "bamboo"
-        ];
-
-        const nouns = [
-            "keyboard", "mouse", "monitor+arm", "desk+mat", "webcam", "laptop+stand", "usb+hub", "stream+deck",
-            "coffee+maker", "electric+kettle", "mug+warmer", "knife+set", "spice+rack", "blender", "air+fryer",
-            "lantern", "folding+chair", "cookware+set", "backpack", "sleeping+bag", "multi+tool", "stove",
-            "yoga+mat", "dumbbell", "massage+gun", "smart+watch", "foam+roller", "balance+board", "resistance+bands"
-        ];
-
-        const backupThemes = [
-            "desk+setup", "productivity+tools", "minimalist+gadgets",
-            "dream+kitchen", "camping+gear", "home+gym", "outdoor+living", "coffee+life"
-        ];
+        const adjectives = ["minimalist", "retro", "portable", "smart", "premium", "industrial", "wooden", "high+end", "ergonomic", "mechanical", "wireless", "silent", "heavy+duty", "compact", "waterproof", "aluminum", "carbon+fiber", "stainless+steel", "titanium", "bamboo"];
+        const nouns = ["keyboard", "mouse", "monitor+arm", "desk+mat", "webcam", "laptop+stand", "usb+hub", "stream+deck", "coffee+maker", "electric+kettle", "mug+warmer", "knife+set", "spice+rack", "blender", "air+fryer", "lantern", "folding+chair", "cookware+set", "backpack", "sleeping+bag", "multi+tool", "stove", "yoga+mat", "dumbbell", "massage+gun", "smart+watch", "foam+roller", "balance+board", "resistance+bands"];
+        const backupThemes = ["desk+setup", "productivity+tools", "minimalist+gadgets", "dream+kitchen", "camping+gear", "home+gym", "outdoor+living", "coffee+life"];
         // ==========================================
 
         function generateRandomKeyword() {
@@ -134,24 +124,48 @@
                 const cell = document.createElement('div');
                 cell.className = 'cell';
                 
-                // ホバー/タップ時の発光色をランダムに決定
-                cell.addEventListener('pointerenter', () => {
-                    if (isRunning) {
-                        const h = 200 + (Math.random() * 40 - 20);
-                        const color = `hsl(${h}, 80%, 50%)`;
-                        cell.style.backgroundColor = color;
-                        cell.style.boxShadow = `0 0 25px ${color}`;
-                    }
-                });
-                cell.addEventListener('pointerleave', () => {
-                    cell.style.boxShadow = 'none';
-                });
+                // PCマウス用
+                cell.addEventListener('mouseenter', () => activateCell(cell));
+                cell.addEventListener('mouseleave', () => deactivateCell(cell));
 
                 cell.addEventListener('click', () => handlePortalClick(cell));
                 grid.appendChild(cell);
                 cells.push(cell);
             }
         }
+
+        // セルを光らせる共通処理
+        function activateCell(cell) {
+            if (!isRunning || !cell) return;
+            const h = 200 + (Math.random() * 40 - 20);
+            const color = `hsl(${h}, 80%, 50%)`;
+            cell.style.backgroundColor = color;
+            cell.style.boxShadow = `0 0 25px ${color}`;
+            cell.classList.add('active-touch');
+        }
+
+        function deactivateCell(cell) {
+            if (!cell) return;
+            cell.style.boxShadow = 'none';
+            cell.classList.remove('active-touch');
+        }
+
+        // iOS/スマホ用: 指でなぞった軌跡を光らせる
+        function handleTouch(e) {
+            if (!isRunning) return;
+            const touch = e.touches[0];
+            // 指の下にある要素を取得
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            
+            if (target && target.classList.contains('cell')) {
+                activateCell(target);
+                // 一定時間後に光の余韻（boxShadow）だけ消す
+                setTimeout(() => deactivateCell(target), 300);
+            }
+        }
+
+        window.addEventListener('touchmove', handleTouch, { passive: false });
+        window.addEventListener('touchstart', handleTouch, { passive: false });
 
         function handlePortalClick(cell) {
             if (!isRunning) {
