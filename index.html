@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mosaic Focus Timer - Infinite Portal</title>
+    <title>Mosaic Focus Timer - Interactive Portal</title>
     <style>
         :root {
             --bg-color: #000;
             --cell-default: #111;
             --transition-speed: 0.6s;
+            --focus-blue: 200; /* ベースの色相 */
         }
 
         body, html {
@@ -25,23 +26,39 @@
             width: 100vw;
             height: 100vh;
             gap: 2px;
+            background-color: #050505;
         }
 
         .cell {
             width: 100%;
             height: 100%;
             background-color: var(--cell-default);
-            transition: background-color 2s ease, transform var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+            /* 通常時はゆっくり消える、ホバー時は素早く反応 */
+            transition: 
+                background-color 1.5s ease, 
+                transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), 
+                box-shadow 0.2s ease,
+                filter 0.2s ease;
             cursor: pointer;
             position: relative;
             z-index: 1;
+            box-sizing: border-box;
         }
 
-        /* 拡大演出 */
+        /* マウスホバー時の「期待感」演出 */
+        .cell:hover {
+            z-index: 10;
+            transform: scale(1.15); /* わずかに手前に浮き出す */
+            filter: brightness(1.8) saturate(1.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* 拡大演出（ポータル） */
         .cell.zoom-active {
             z-index: 9999 !important;
-            transform: scale(50); /* 画面を完全に覆う */
+            transform: scale(60); /* 画面を完全に覆う */
             pointer-events: none;
+            transition: transform var(--transition-speed) cubic-bezier(0.7, 0, 0.3, 1);
         }
 
         /* 中央UI */
@@ -53,23 +70,23 @@
             text-align: center;
             pointer-events: none;
             z-index: 100;
-            transition: opacity 0.5s;
+            transition: opacity 0.8s ease;
         }
 
         h1 {
-            font-size: clamp(2rem, 10vw, 5rem);
+            font-size: clamp(2.5rem, 12vw, 6rem);
             margin: 0;
-            letter-spacing: 1rem;
+            letter-spacing: 1.2rem;
             font-weight: 100;
-            text-shadow: 0 0 20px rgba(0,0,0,0.8);
+            text-shadow: 0 0 30px rgba(0,0,0,0.9);
         }
 
         #status {
-            font-size: 0.8rem;
-            letter-spacing: 0.2rem;
+            font-size: 0.85rem;
+            letter-spacing: 0.3rem;
             text-transform: uppercase;
             opacity: 0.5;
-            margin-top: 10px;
+            margin-top: 15px;
         }
 
         .fade-out {
@@ -83,7 +100,7 @@
     
     <div id="ui">
         <h1 id="label">FOCUS</h1>
-        <p id="status">Click a square to discover</p>
+        <p id="status">Hover to glow, Click to discover</p>
     </div>
 
     <script>
@@ -94,42 +111,29 @@
         let isRunning = false;
         let cells = [];
 
-// ==========================================
-// 設定エリア（拡張版）
-// ==========================================
-const ASSOCIATE_ID = "mft041-22"; 
+        // ==========================================
+        // 設定エリア
+        // ==========================================
+        const ASSOCIATE_ID = "mft041-22"; // アソシエイトIDをここに
 
-// どのジャンルでも使いやすい形容詞
-const adjectives = [
-    // 汎用・スタイル
-    "minimalist", "retro", "portable", "smart", "premium", "industrial", "wooden", "high+end",
-    // 機能性
-    "ergonomic", "mechanical", "wireless", "silent", "heavy+duty", "compact", "waterproof",
-    // 素材感
-    "aluminum", "carbon+fiber", "stainless+steel", "titanium", "bamboo"
-];
+        // 自動生成キーワードパーツ
+        const adjectives = [
+            "minimalist", "retro", "portable", "smart", "premium", "industrial", "wooden", "high+end",
+            "ergonomic", "mechanical", "wireless", "silent", "heavy+duty", "compact", "waterproof",
+            "aluminum", "carbon+fiber", "stainless+steel", "titanium", "bamboo"
+        ];
 
-// ジャンルを横断した名詞
-const nouns = [
-    // デスク・ガジェット
-    "keyboard", "mouse", "monitor+arm", "desk+mat", "webcam", "laptop+stand", "usb+hub", "stream+deck",
-    // キッチン
-    "coffee+maker", "electric+kettle", "mug+warmer", "knife+set", "spice+rack", "blender", "air+fryer",
-    // キャンプ・アウトドア
-    "lantern", "folding+chair", "cookware+set", "backpack", "sleeping+bag", "multi+tool", "stove",
-    // フィットネス・健康
-    "yoga+mat", "dumbbell", "massage+gun", "smart+watch", "foam+roller", "balance+board", "resistance+bands"
-];
+        const nouns = [
+            "keyboard", "mouse", "monitor+arm", "desk+mat", "webcam", "laptop+stand", "usb+hub", "stream+deck",
+            "coffee+maker", "electric+kettle", "mug+warmer", "knife+set", "spice+rack", "blender", "air+fryer",
+            "lantern", "folding+chair", "cookware+set", "backpack", "sleeping+bag", "multi+tool", "stove",
+            "yoga+mat", "dumbbell", "massage+gun", "smart+watch", "foam+roller", "balance+board", "resistance+bands"
+        ];
 
-// 特定のジャンルを狙い撃ちするバックアップテーマ
-const backupThemes = [
-    "desk+setup", "productivity+tools", "minimalist+gadgets",
-    "dream+kitchen", "camping+gear", "home+gym", "outdoor+living", "coffee+life"
-];
-// ==========================================
+        const backupThemes = ["desk+setup", "productivity+tools", "camping+gear", "home+gym", "coffee+life"];
+        // ==========================================
 
         function generateRandomKeyword() {
-            // 80%の確率で 組み合わせ、20%で単一テーマ
             if (Math.random() > 0.2) {
                 const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
                 const noun = nouns[Math.floor(Math.random() * nouns.length)];
@@ -150,7 +154,26 @@ const backupThemes = [
             for (let i = 0; i < totalCells; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
-                cell.onclick = () => handlePortalClick(cell);
+                
+                // マウスホバー時の動的な発光処理
+                cell.addEventListener('mouseenter', () => {
+                    if (isRunning) {
+                        const h = 200 + (Math.random() * 60 - 30);
+                        const s = 80;
+                        const l = 45;
+                        const color = `hsl(${h}, ${s}%, ${l}%)`;
+                        cell.style.backgroundColor = color;
+                        cell.style.boxShadow = `0 0 30px ${color}`;
+                    }
+                });
+
+                // 離れたら影（光）を消す
+                cell.addEventListener('mouseleave', () => {
+                    cell.style.boxShadow = 'none';
+                });
+
+                cell.addEventListener('click', () => handlePortalClick(cell));
+                
                 grid.appendChild(cell);
                 cells.push(cell);
             }
@@ -159,38 +182,38 @@ const backupThemes = [
         function handlePortalClick(cell) {
             if (!isRunning) {
                 isRunning = true;
-                status.innerText = "Scanning the grid...";
+                status.innerText = "Exploring the grid...";
                 return;
             }
 
-            // 拡大とUI消去
+            // クリックされたセルの現在の色を確定させ、演出開始
             cell.classList.add('zoom-active');
             ui.classList.add('fade-out');
 
-            // 遷移先の準備
             const keyword = generateRandomKeyword();
             const targetUrl = `https://www.amazon.co.jp/s?k=${keyword}&tag=${ASSOCIATE_ID}`;
 
-            // 0.6秒（アニメーションの山場）で別タブを開く
+            // アニメーションに合わせて別タブで開く
             setTimeout(() => {
                 window.open(targetUrl, '_blank');
                 
-                // 1秒後に元の状態に復帰させる（連続でクリックできるように）
+                // 遷移後、少し間を置いて元の状態へリセット
                 setTimeout(() => {
                     cell.classList.remove('zoom-active');
                     ui.classList.remove('fade-out');
-                }, 1000);
+                }, 1200);
             }, 600);
         }
 
         function updateCells() {
             if (!isRunning) return;
 
+            // 背景でのランダムな点滅
             cells.forEach(cell => {
-                if (Math.random() > 0.85) {
-                    const h = 200 + (Math.random() * 40 - 20); // Focus Blue
-                    const s = 30 + (Math.random() * 40);
-                    const l = 10 + (Math.random() * 25);
+                if (Math.random() > 0.92) {
+                    const h = 200 + (Math.random() * 40 - 20);
+                    const s = 40 + (Math.random() * 30);
+                    const l = 10 + (Math.random() * 20);
                     cell.style.backgroundColor = `hsl(${h}, ${s}%, ${l}%)`;
                 }
             });
@@ -202,8 +225,8 @@ const backupThemes = [
             if (!document.querySelector('.zoom-active')) createGrid();
         });
 
-        // 演出ループ
-        setInterval(updateCells, 1000);
+        // 1.2秒周期で背景アニメーションを更新
+        setInterval(updateCells, 1200);
 
     </script>
 </body>
