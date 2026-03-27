@@ -14,8 +14,9 @@
         body, html {
             margin: 0; padding: 0; height: 100%; width: 100%;
             overflow: hidden; background: var(--bg-color);
-            font-family: 'Inter', -apple-system, sans-serif;
-            touch-action: manipulation;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            touch-action: none;
+            user-select: none;
         }
 
         #grid {
@@ -34,18 +35,17 @@
             cursor: pointer; position: relative; z-index: 1;
         }
 
-        /* PCでのホバー演出 */
-        .cell:hover {
+        /* ホバー・アクティブ時の演出 */
+        .cell:hover, .cell:active {
             z-index: 10;
             transform: scale(1.15);
-            filter: brightness(2);
+            filter: brightness(2.5) saturate(1.5);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        /* クリック時の拡大演出 */
         .cell.zoom-active {
             z-index: 9999 !important;
-            transform: scale(60);
+            transform: scale(80);
             pointer-events: none;
             transition: transform var(--transition-speed) cubic-bezier(0.7, 0, 0.3, 1);
         }
@@ -80,7 +80,7 @@
     
     <div id="ui">
         <h1 id="label">FOCUS</h1>
-        <p id="status">Tilt & Click to explore</p>
+        <p id="status">Click a square to discover</p>
     </div>
 
     <script>
@@ -90,10 +90,9 @@
         
         let isRunning = false;
         let cells = [];
-        let gyroData = { beta: 0, gamma: 0 };
 
         // ==========================================
-        // 設定エリア（拡張版）
+        // 設定エリア
         // ==========================================
         const ASSOCIATE_ID = "mft041-22"; 
 
@@ -135,15 +134,16 @@
                 const cell = document.createElement('div');
                 cell.className = 'cell';
                 
-                // ホバー時の発光
-                cell.addEventListener('mouseenter', () => {
+                // ホバー/タップ時の発光色をランダムに決定
+                cell.addEventListener('pointerenter', () => {
                     if (isRunning) {
                         const h = 200 + (Math.random() * 40 - 20);
-                        cell.style.backgroundColor = `hsl(${h}, 70%, 50%)`;
-                        cell.style.boxShadow = `0 0 20px hsl(${h}, 70%, 50%)`;
+                        const color = `hsl(${h}, 80%, 50%)`;
+                        cell.style.backgroundColor = color;
+                        cell.style.boxShadow = `0 0 25px ${color}`;
                     }
                 });
-                cell.addEventListener('mouseleave', () => {
+                cell.addEventListener('pointerleave', () => {
                     cell.style.boxShadow = 'none';
                 });
 
@@ -153,29 +153,10 @@
             }
         }
 
-        async function initGyro() {
-            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                try {
-                    const permission = await DeviceOrientationEvent.requestPermission();
-                    if (permission === 'granted') {
-                        window.addEventListener('deviceorientation', handleOrientation);
-                    }
-                } catch (e) { console.error(e); }
-            } else {
-                window.addEventListener('deviceorientation', handleOrientation);
-            }
-        }
-
-        function handleOrientation(event) {
-            gyroData.beta = event.beta || 0;
-            gyroData.gamma = event.gamma || 0;
-        }
-
         function handlePortalClick(cell) {
             if (!isRunning) {
                 isRunning = true;
-                status.innerText = "Exploring...";
-                initGyro(); 
+                status.innerText = "Exploring the grid...";
                 return;
             }
 
@@ -196,15 +177,11 @@
 
         function updateCells() {
             if (!isRunning) return;
-
-            const gyroHueShift = gyroData.gamma * 0.6; 
-            const gyroLightShift = Math.abs(gyroData.beta) * 0.15;
-
             cells.forEach(cell => {
                 if (Math.random() > 0.94) {
-                    const h = (200 + gyroHueShift) + (Math.random() * 30 - 15);
+                    const h = 200 + (Math.random() * 30 - 15);
                     const s = 40 + (Math.random() * 30);
-                    const l = (10 + gyroLightShift) + (Math.random() * 10);
+                    const l = 10 + (Math.random() * 15);
                     cell.style.backgroundColor = `hsl(${h}, ${s}%, ${l}%)`;
                 }
             });
