@@ -8,7 +8,7 @@
     <style>
         :root {
             --bg-color: #000;
-            --cell-default: #0a0a0a;
+            --cell-default: #141414; /* わずかに明るい黒 */
             --transition-speed: 0.6s;
         }
 
@@ -16,7 +16,6 @@
             margin: 0; padding: 0; height: 100%; width: 100%;
             overflow: hidden; background: var(--bg-color);
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            /* iOSでのスクロール・バウンス・長押しメニューを徹底的に抑制 */
             touch-action: none;
             -webkit-touch-callout: none;
             user-select: none;
@@ -29,22 +28,23 @@
             grid-auto-rows: minmax(70px, 1fr);
             width: 100vw; height: 100vh;
             gap: 1px;
-            background-color: #050505;
+            background-color: #000;
         }
 
         .cell {
             width: 100%; height: 100%;
             background-color: var(--cell-default);
-            transition: background-color 1.5s ease, transform 0.2s ease, filter 0.2s ease;
+            /* 色の変化を少し速めることで、動的な印象を強める（1.5s -> 1.0s） */
+            transition: background-color 1.0s ease, transform 0.2s ease, filter 0.2s ease;
             cursor: pointer; position: relative; z-index: 1;
         }
 
-        /* ホバーおよびJSで付与するアクティブ状態 */
+        /* ホバー・アクティブ時の強力な発光演出 */
         .cell:hover, .cell.active-touch {
             z-index: 10;
-            transform: scale(1.15);
-            filter: brightness(2.5) saturate(1.5);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            transform: scale(1.2);
+            filter: brightness(3.5) saturate(1.8);
+            border: 1px solid rgba(255, 255, 255, 0.4);
         }
 
         .cell.zoom-active {
@@ -67,12 +67,12 @@
         h1 {
             font-size: clamp(2.5rem, 12vw, 5.5rem);
             margin: 0; letter-spacing: 0.8rem; font-weight: 100;
-            text-shadow: 0 0 20px rgba(0,0,0,0.8);
+            text-shadow: 0 0 30px rgba(0,0,0,0.9);
         }
 
         #status {
             font-size: 0.75rem; letter-spacing: 0.2rem;
-            text-transform: uppercase; opacity: 0.5; margin-top: 15px;
+            text-transform: uppercase; opacity: 0.6; margin-top: 15px;
         }
 
         .fade-out { opacity: 0; }
@@ -95,15 +95,47 @@
         let isRunning = false;
         let cells = [];
 
-        // ==========================================
-        // 設定エリア
-        // ==========================================
-        const ASSOCIATE_ID = "mft041-22"; 
+// ==========================================
+// 設定エリア（日本語カテゴリー拡張版）
+// ==========================================
+const ASSOCIATE_ID = "mft041-22"; 
 
-        const adjectives = ["minimalist", "retro", "portable", "smart", "premium", "industrial", "wooden", "high+end", "ergonomic", "mechanical", "wireless", "silent", "heavy+duty", "compact", "waterproof", "aluminum", "carbon+fiber", "stainless+steel", "titanium", "bamboo"];
-        const nouns = ["keyboard", "mouse", "monitor+arm", "desk+mat", "webcam", "laptop+stand", "usb+hub", "stream+deck", "coffee+maker", "electric+kettle", "mug+warmer", "knife+set", "spice+rack", "blender", "air+fryer", "lantern", "folding+chair", "cookware+set", "backpack", "sleeping+bag", "multi+tool", "stove", "yoga+mat", "dumbbell", "massage+gun", "smart+watch", "foam+roller", "balance+board", "resistance+bands"];
-        const backupThemes = ["desk+setup", "productivity+tools", "minimalist+gadgets", "dream+kitchen", "camping+gear", "home+gym", "outdoor+living", "coffee+life"];
-        // ==========================================
+// どんな商品にも組み合わさる魅力的な形容詞
+const adjectives = [
+    "高級", "レトロ", "北欧風", "おしゃれ", "プロ仕様", "職人魂", "防水", "静音", 
+    "超軽量", "コンパクト", "一生モノ", "時短", "高音質", "自動", "木製", 
+    "ミニマル", "多機能", "エルゴノミクス", "ヴィンテージ", "最新鋭", "折りたたみ"
+];
+
+// Amazonの全メインカテゴリーを網羅した名詞
+const nouns = [
+    // デスク・PC周辺
+    "キーボード", "マウス", "モニターアーム", "デスクマット", "ウェブカメラ", "ノートPCスタンド", "USBハブ",
+    // 家電・キッチン
+    "コーヒーメーカー", "電気ケトル", "ノンフライヤー", "全自動掃除機", "空気清浄機", "ブレンダー", "ホットプレート",
+    // ホーム・インテリア・寝具
+    "間接照明", "アロマディフューザー", "人をダメにするソファ", "多機能抱き枕", "ハンモック", "低反発枕",
+    // キャンプ・アウトドア
+    "LEDランタン", "キャンプチェア", "焚き火台", "バックパック", "マルチツール", "ポータブル電源",
+    // フィットネス・健康
+    "ヨガマット", "ダンベル", "マッサージガン", "スマートウォッチ", "フォームローラー", "懸垂マシン",
+    // 美容・コスメ
+    "美顔器", "電動歯ブラシ", "ヘアドライヤー", "鼻毛カッター", "ネックマッサージャー",
+    // ファッション・小物
+    "本革財布", "自動開閉傘", "偏光サングラス", "厚手ソックス", "多機能ビジネスバッグ",
+    // ベビー・玩具・ペット
+    "知育玩具", "ボードゲーム", "自動給餌器", "キャットタワー", "ベビーカー用扇風機",
+    // DIY・工具
+    "インパクトドライバー", "レーザー距離計", "工具セット", "防災バッグ"
+];
+
+// 特定のライフスタイルを狙い撃ちするテーマ
+const backupThemes = [
+    "デスク周り", "生産性向上", "キャンプギア", "ホームジム", "コーヒーのある暮らし", 
+    "キッチン便利グッズ", "丁寧な暮らし", "ガジェット", "男の隠れ家", "癒やしグッズ",
+    "おうち時間改善", "防災用品", "旅行便利グッズ", "スマートホーム", "ガレージライフ"
+];
+// ==========================================
 
         function generateRandomKeyword() {
             if (Math.random() > 0.2) {
@@ -123,24 +155,20 @@
             for (let i = 0; i < columns * rows; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
-                
-                // PCマウス用
                 cell.addEventListener('mouseenter', () => activateCell(cell));
                 cell.addEventListener('mouseleave', () => deactivateCell(cell));
-
                 cell.addEventListener('click', () => handlePortalClick(cell));
                 grid.appendChild(cell);
                 cells.push(cell);
             }
         }
 
-        // セルを光らせる共通処理
         function activateCell(cell) {
             if (!isRunning || !cell) return;
-            const h = 200 + (Math.random() * 40 - 20);
-            const color = `hsl(${h}, 80%, 50%)`;
+            const h = 190 + (Math.random() * 60 - 30);
+            const color = `hsl(${h}, 85%, 60%)`;
             cell.style.backgroundColor = color;
-            cell.style.boxShadow = `0 0 25px ${color}`;
+            cell.style.boxShadow = `0 0 40px ${color}`;
             cell.classList.add('active-touch');
         }
 
@@ -150,16 +178,13 @@
             cell.classList.remove('active-touch');
         }
 
-        // iOS/スマホ用: 指でなぞった軌跡を光らせる
+        // iOS Safari 軌道ハイライト対応
         function handleTouch(e) {
             if (!isRunning) return;
             const touch = e.touches[0];
-            // 指の下にある要素を取得
             const target = document.elementFromPoint(touch.clientX, touch.clientY);
-            
             if (target && target.classList.contains('cell')) {
                 activateCell(target);
-                // 一定時間後に光の余韻（boxShadow）だけ消す
                 setTimeout(() => deactivateCell(target), 300);
             }
         }
@@ -173,13 +198,10 @@
                 status.innerText = "Exploring the grid...";
                 return;
             }
-
             cell.classList.add('zoom-active');
             ui.classList.add('fade-out');
-
             const keyword = generateRandomKeyword();
             const targetUrl = `https://www.amazon.co.jp/s?k=${keyword}&tag=${ASSOCIATE_ID}`;
-
             setTimeout(() => {
                 window.open(targetUrl, '_blank');
                 setTimeout(() => {
@@ -189,21 +211,30 @@
             }, 600);
         }
 
+        // セルの自動更新ロジック（点灯と消灯のミックス）
         function updateCells() {
             if (!isRunning) return;
             cells.forEach(cell => {
-                if (Math.random() > 0.94) {
-                    const h = 200 + (Math.random() * 30 - 15);
-                    const s = 40 + (Math.random() * 30);
-                    const l = 10 + (Math.random() * 15);
+                const rand = Math.random();
+                
+                if (rand > 0.96) { 
+                    // 【点灯】新しい色を割り当てる（明るめ）
+                    const h = 190 + (Math.random() * 70); 
+                    const s = 60 + (Math.random() * 30);
+                    const l = 30 + (Math.random() * 20);
                     cell.style.backgroundColor = `hsl(${h}, ${s}%, ${l}%)`;
+                } else if (rand < 0.03) { 
+                    // 【消灯】3%の確率で元の暗い色に戻す（これで画面が色で埋まりきるのを防ぐ）
+                    cell.style.backgroundColor = 'var(--cell-default)';
                 }
             });
         }
 
         createGrid();
         window.addEventListener('resize', () => { if (!document.querySelector('.zoom-active')) createGrid(); });
-        setInterval(updateCells, 1000);
+        
+        // 更新間隔を少し短くして、より活発な印象に（1000ms -> 800ms）
+        setInterval(updateCells, 800);
     </script>
 </body>
 </html>
