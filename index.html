@@ -11,23 +11,31 @@
         }
 
         body, html {
-            margin: 0; padding: 0; height: 100%; width: 100%;
-            overflow: hidden; background: var(--bg-color);
-            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
-            color: white; user-select: none;
-            transition: background-color 1.2s ease;
+            margin: 0; padding: 0; 
+            /* iPhone Safariのツールバー変動に対応する最新の高さ指定 */
+            height: 100vh;
+            height: 100dvh; 
+            width: 100vw;
+            overflow: hidden; 
+            background: var(--bg-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: white; 
+            user-select: none;
+            position: fixed; /* スクロールを完全に禁止 */
         }
 
         #grid {
             display: grid;
-            /* 厳密に10列 x 6行を維持 */
             grid-template-columns: repeat(10, 1fr);
             grid-template-rows: repeat(6, 1fr);
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
             gap: 1px;
             background-color: #000;
             box-sizing: border-box;
+            /* iPhoneの上下セーフエリア（ノッチやホームバー）を考慮した内側の余白 */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
         }
 
         .cell {
@@ -35,14 +43,11 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            
-            /* 修正の核心：1セルの横幅（10vw）の約80%を上限にする */
-            /* これにより、どんなに横幅が狭いスマホでも隣とぶつかりません */
-            font-size: min(8vw, 10vh); 
+            /* 数字が隣と重ならないよう、かつ高さも考慮したレスポンシブサイズ */
+            font-size: min(8vw, 10dvh); 
             font-weight: 900;
             color: transparent;
             transition: background-color 0.4s, color 0.3s;
-            overflow: hidden;
             line-height: 1;
         }
 
@@ -62,19 +67,23 @@
             font-size: clamp(3rem, 15vw, 10rem);
             margin: 0; font-weight: 100; opacity: 0.1;
             letter-spacing: 0.5rem;
+            color: #fff;
         }
 
+        /* 休憩モードのスタイル */
+        .is-break { background-color: #001a0d; }
         .is-break h1 { color: #00ff88; opacity: 0.2; }
 
         .info-panel {
             position: fixed;
-            bottom: calc(10px + env(safe-area-inset-bottom));
+            /* ホームバーに被らないようenvを使用 */
+            bottom: calc(env(safe-area-inset-bottom) + 10px);
             z-index: 20;
             font-size: 0.7rem;
             background: rgba(0,0,0,0.7);
             padding: 5px 12px;
             border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
         }
         #left-info { left: 10px; }
         #right-info { right: 10px; }
@@ -84,7 +93,7 @@
     <div id="grid"></div>
     <div id="ui-overlay"><h1 id="main-label">FOCUS</h1></div>
     <div id="left-info" class="info-panel">READY</div>
-    <div id="right-info" class="info-panel">TAP START</div>
+    <div id="right-info" class="info-panel">TAP TO START</div>
 
     <script>
         const grid = document.getElementById('grid');
@@ -102,7 +111,7 @@
             for (let i = 0; i < 60; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
-                cell.onclick = () => {
+                cell.onclick = (e) => {
                     if (!timerInterval) startTimer();
                     else if (isBreak && cell.classList.contains('active')) {
                         window.open(`https://www.amazon.co.jp/s?k=${i+1}&tag=mft041-22`, '_blank');
@@ -126,7 +135,7 @@
                 if (totalSeconds >= limit) {
                     isBreak = !isBreak;
                     totalSeconds = 0;
-                    document.body.style.backgroundColor = isBreak ? "#001a0d" : "#000";
+                    document.body.classList.toggle('is-break', isBreak);
                     mainLabel.innerText = isBreak ? "REST" : "FOCUS";
                     return;
                 }
@@ -149,7 +158,10 @@
         }
 
         createGrid();
-        window.onclick = (e) => { if(!timerInterval) startTimer(); };
+        // 最初のタップでタイマー開始
+        window.addEventListener('click', (e) => {
+            if(!timerInterval && !e.target.classList.contains('cell')) startTimer();
+        }, { once: false });
     </script>
 </body>
 </html>
