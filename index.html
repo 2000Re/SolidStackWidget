@@ -2,170 +2,237 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mosaic Focus Timer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solid Stack Widget</title>
     <style>
         :root {
-            --bg-color: #000;
-            --cell-default: #0a0a0a;
-            --grid-gap: 0px; /* 隙間を0にして計算ズレを防止 */
+            --primary: #007bff;
+            --card-shadow: 0 10px 35px rgba(0,0,0,0.2); /* 影をより深く、濃く設定 */
         }
 
-        body, html {
-            margin: 0; padding: 0; 
-            height: 100dvh; 
-            width: 100vw;
-            overflow: hidden; 
-            background: var(--bg-color);
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            color: white; 
-            user-select: none;
-            position: fixed;
-            /* Safariの左右の遊びを消す */
-            -webkit-text-size-adjust: 100%;
-        }
-
-        #grid {
-            display: grid;
-            grid-template-columns: repeat(10, 1fr);
-            grid-template-rows: repeat(6, 1fr);
-            /* 画面幅に100%きっちり合わせる */
-            width: 100%;
-            height: 100%;
-            gap: var(--grid-gap);
-            background-color: #000;
-            box-sizing: border-box;
-            /* ノッチ・ホームバー対策 */
-            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-        }
-
-        .cell {
-            background-color: var(--cell-default);
+        body {
+            background-color: #e9ecef;
             display: flex;
             justify-content: center;
             align-items: center;
-            /* 数字が絶対に隣のセルに侵入しないサイズ(7.5vw) */
-            font-size: min(7.5vw, 10dvh); 
-            font-weight: 900;
-            color: transparent;
-            transition: background-color 0.4s, color 0.3s;
-            line-height: 1;
-            /* 境界線を内側に描画してサイズに影響させない */
-            box-shadow: inset 0 0 0 0.5px #000;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Helvetica Neue', Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
+            overscroll-behavior-y: contain;
         }
 
-        .cell.active { color: white; }
+        .stack-container {
+            position: relative;
+            width: 320px;
+            height: 450px;
+            perspective: 1200px;
+        }
 
-        #ui-overlay {
+        .card {
             position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-            pointer-events: none;
-            text-align: center;
             width: 100%;
+            height: 100%;
+            background: white;
+            border-radius: 28px;
+            /* 境界をはっきりさせるための影と薄いボーダー */
+            box-shadow: var(--card-shadow);
+            border: 1px solid rgba(0,0,0,0.08);
+            
+            transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backface-visibility: hidden;
+            will-change: transform, opacity;
+            
+            /* 【重要】透過を一切禁止 */
+            opacity: 1 !important; 
         }
 
-        h1 {
-            font-size: clamp(2rem, 15vw, 8rem);
-            margin: 0; font-weight: 100; opacity: 0.1;
-            letter-spacing: 0.3rem;
-            color: #fff;
+        .card-img {
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 1.8rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
-        .is-break { background-color: #001a0d; }
-        .is-break h1 { color: #00ff88; opacity: 0.2; }
+        .card-content {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            background: white;
+        }
 
-        .info-panel {
-            position: fixed;
-            bottom: calc(env(safe-area-inset-bottom) + 15px);
-            z-index: 20;
-            font-size: 0.65rem;
-            background: rgba(0,0,0,0.8);
-            padding: 4px 10px;
-            border-radius: 15px;
-            backdrop-filter: blur(8px);
-            border: 0.5px solid rgba(255,255,255,0.1);
+        h3 { margin: 0 0 10px 0; font-size: 1.2rem; color: #333; }
+        p { font-size: 0.9rem; color: #555; line-height: 1.5; margin: 0; }
+
+        .card-btn {
+            display: block;
+            background: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 15px;
+            border-radius: 18px;
+            text-decoration: none;
+            margin-top: auto;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .card-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 状態別スタイル：不透明度をすべて1に固定 */
+        /* 1番目（最前面） */
+        .card.pos-1 {
+            z-index: 3;
+            transform: translateZ(0) translateY(0);
+        }
+
+        /* 2番目（少し後ろ） */
+        .card.pos-2 {
+            z-index: 2;
+            transform: translateZ(-80px) translateY(30px);
+        }
+
+        /* 3番目（さらに後ろ） */
+        .card.pos-3 {
+            z-index: 1;
+            transform: translateZ(-160px) translateY(60px);
+        }
+
+        /* 待機中 */
+        .card.pos-hidden {
+            z-index: 0;
+            transform: translateZ(-240px) translateY(90px);
             pointer-events: none;
         }
-        #left-info { left: 15px; }
-        #right-info { right: 15px; }
+
+        /* めくられるアニメーション：不透明度1を維持 */
+        .card.exit-up {
+            z-index: 4;
+            transform: translateY(-140%) rotateX(20deg);
+        }
+
+        .guide {
+            position: absolute;
+            bottom: -60px;
+            width: 100%;
+            text-align: center;
+            color: #777;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+        }
     </style>
 </head>
 <body>
-    <div id="grid"></div>
-    <div id="ui-overlay"><h1 id="main-label">FOCUS</h1></div>
-    <div id="left-info" class="info-panel">READY</div>
-    <div id="right-info" class="info-panel">TAP TO START</div>
 
-    <script>
-        const grid = document.getElementById('grid');
-        const mainLabel = document.getElementById('main-label');
-        const leftInfo = document.getElementById('left-info');
-        const rightInfo = document.getElementById('right-info');
-        
-        let totalSeconds = 0;
-        let isBreak = false;
-        let timerInterval = null;
-        let cells = [];
+<div class="stack-container" id="stack">
+    <div class="card">
+        <div class="card-img" style="background: linear-gradient(45deg, #FF6B6B, #FF8E8E);">Apple</div>
+        <div class="card-content">
+            <h3>Apple Watch Series 11(GPSモデル)</h3>
+            <p>42mmローズゴールドアルミニウムケースとライトブラッシュスポーツバンド - S/M、睡眠時無呼吸、高血圧パターン、血中酸素、心電図、排卵推定、心拍数、服薬、マインドフルネス、ノイズ、睡眠スコア、転倒検出、IPX6X防塵、泳げる耐水、Suica対応、高速充電対応</p>
+            <a href="https://amzn.to/47EGhyD" class="card-btn">Amazonでチェック</a>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-img" style="background: linear-gradient(45deg, #4ECDC4, #55EFC4);">Apple</div>
+        <div class="card-content">
+            <h3>Apple AirPods Pro 3</h3>
+            <p>ワイヤレスイヤホン、アクティブノイズキャンセリング、ライブ翻訳、心拍センサー、補聴機能、Bluetoothヘッドホン、空間オーディオ サウンド、USB-C充電ケース、防塵性能と耐汗耐水性能、「探す」対応、Qi充電</p>
+            <a href="https://amzn.to/3PURxAQ" class="card-btn">Amazonでチェック</a>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-img" style="background: linear-gradient(45deg, #6C5CE7, #a29bfe);">CIO</div>
+        <div class="card-content">
+            <h3>CIO NovaPort TRIOⅡ 65W</h3>
+            <p>急速充電器 PD [世界最小級 CIO独自技術 NovaIntelligence NovaEngine搭載] 3ポート USB-C×3 ACアダプター コンセント 軽量 iPhone 17 / Air / 16 / 15 Android Galaxy Macbook iPad ノートPC (ブラック)</p>
+            <a href="https://amzn.to/3PP2lR3" class="card-btn">Amazonでチェック</a>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-img" style="background: linear-gradient(45deg, #FD9644, #feb47b);">Apple</div>
+        <div class="card-content">
+            <h3>Apple iPhone 17 256GB (SIMフリー)</h3>
+            <p>ProMotionを採用した6.3インチディスプレイ、A19チップ、グループセルフィーを一段とスマートに撮れるセンターフレームフロントカメラ、向上した耐擦傷性能、一日中使えるバッテリー；ホワイト</p>
+            <a href="https://amzn.to/4bUa2y1" class="card-btn">Amazonでチェック</a>
+        </div>
+    </div>
+    
+    <div class="guide">ホイールまたはスワイプでめくる</div>
+</div>
 
-        function createGrid() {
-            grid.innerHTML = '';
-            for (let i = 0; i < 60; i++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.onclick = (e) => {
-                    if (!timerInterval) startTimer();
-                    else if (isBreak && cell.classList.contains('active')) {
-                        window.open(`https://www.amazon.co.jp/s?k=${i+1}&tag=mft041-22`, '_blank');
-                    }
-                };
-                grid.appendChild(cell);
-                cells.push(cell);
-            }
-        }
+<script>
+    const stack = document.getElementById('stack');
+    const cards = Array.from(stack.querySelectorAll('.card'));
+    let isAnimating = false;
 
-        function startTimer() {
-            if (timerInterval) return;
-            timerInterval = setInterval(() => {
-                const limit = isBreak ? 300 : 1500;
-                const sec = totalSeconds % 60;
-
-                if (sec === 0 && totalSeconds !== 0) {
-                    cells.forEach(c => { c.innerText = ''; c.style.backgroundColor = ''; c.classList.remove('active'); });
-                }
-
-                if (totalSeconds >= limit) {
-                    isBreak = !isBreak;
-                    totalSeconds = 0;
-                    document.body.classList.toggle('is-break', isBreak);
-                    mainLabel.innerText = isBreak ? "REST" : "FOCUS";
-                    return;
-                }
-
-                const c = cells[sec];
-                if (c) {
-                    c.classList.add('active');
-                    c.innerText = sec + 1;
-                    c.style.backgroundColor = isBreak ? `hsl(${Math.floor(Math.random()*60+130)},70%,40%)` : `hsl(${Math.floor(Math.random()*40+195)},70%,45%)`;
-                }
-                
-                totalSeconds++;
-                updateUI();
-            }, 1000);
-        }
-
-        function updateUI() {
-            const m = Math.floor(totalSeconds / 60);
-            const s = totalSeconds % 60;
-            leftInfo.innerText = isBreak ? "REST MODE" : "FOCUS MODE";
-            rightInfo.innerText = `${m}:${s < 10 ? '0'+s : s}`;
-        }
-
-        createGrid();
-        window.addEventListener('click', (e) => {
-            if(!timerInterval && !e.target.classList.contains('cell')) startTimer();
+    function updateDisplay() {
+        cards.forEach((card, i) => {
+            card.className = 'card'; // クラスをリセット
+            if (i === 0) card.classList.add('pos-1');
+            else if (i === 1) card.classList.add('pos-2');
+            else if (i === 2) card.classList.add('pos-3');
+            else card.classList.add('pos-hidden');
         });
-    </script>
+    }
+    updateDisplay();
+
+    function next() {
+        if (isAnimating) return;
+        isAnimating = true;
+
+        const current = cards[0];
+        current.classList.add('exit-up');
+
+        setTimeout(() => {
+            const shifted = cards.shift();
+            cards.push(shifted);
+            updateDisplay();
+            isAnimating = false;
+        }, 500);
+    }
+
+    function prev() {
+        if (isAnimating) return;
+        isAnimating = true;
+
+        const popped = cards.pop();
+        cards.unshift(popped);
+        
+        // 戻る時は一旦上から降ってくる演出
+        cards[0].classList.add('exit-up');
+        updateDisplay();
+        
+        setTimeout(() => {
+            cards[0].classList.remove('exit-up');
+            isAnimating = false;
+        }, 10);
+    }
+
+    // ホイール操作
+    window.addEventListener('wheel', (e) => {
+        if (Math.abs(e.deltaY) < 15) return;
+        e.deltaY > 0 ? next() : prev();
+    }, { passive: true });
+
+    // スワイプ操作
+    let startY = 0;
+    window.addEventListener('touchstart', (e) => startY = e.touches[0].clientY);
+    window.addEventListener('touchend', (e) => {
+        let diff = startY - e.changedTouches[0].clientY;
+        if (Math.abs(diff) > 40) diff > 0 ? next() : prev();
+    });
+</script>
+
 </body>
 </html>
