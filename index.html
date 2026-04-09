@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jump-Dino</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dino Jump - Fixed Cactus & Collision</title>
     <style>
         :root {
             --bg-color: #f7f7f7;
@@ -34,11 +34,13 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             transition: background-color 1s;
-            user-select: none;
+            overflow: hidden; /* スマホのスクロール防止 */
+            touch-action: manipulation; /* ダブルタップズーム防止 */
         }
 
         .game-container {
-            width: 600px;
+            width: 95vw; /* スマホの横幅に合わせる */
+            max-width: 600px;
             height: 200px;
             border-bottom: 2px solid var(--line-color);
             overflow: hidden;
@@ -50,8 +52,8 @@
         .score-container {
             position: absolute;
             top: 10px;
-            right: 15px;
-            font-size: 18px;
+            right: 10px;
+            font-size: 14px; /* スマホ向けに少し小さく */
             z-index: 20;
         }
 
@@ -59,8 +61,8 @@
             position: absolute;
             bottom: 80px;
             right: -150px;
-            width: 120px;
-            height: 50px;
+            width: 100px;
+            height: 40px;
             background-color: #ff9900;
             border: 2px solid var(--line-color);
             display: flex;
@@ -69,7 +71,7 @@
             cursor: pointer;
             text-decoration: none;
             color: white;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: bold;
             text-align: center;
             animation: move-billboard 9s infinite linear;
@@ -78,38 +80,33 @@
 
         @keyframes move-billboard {
             0% { right: -150px; }
-            100% { right: 100%; }
+            100% { right: 110%; }
         }
 
-        /* --- 恐竜：スクリーンショット[1]を1ドットずつ完全再現 --- */
+        /* --- 恐竜：スマホでも消えないようサイズを固定(px) --- */
         #dino {
-            width: 5px; 
-            height: 5px;
+            width: 4.5px; /* 隙間防止のため少し重ねる */
+            height: 4.5px;
             position: absolute;
-            bottom: 44px; /* 接地位置を微調整 */
-            left: 50px;
+            bottom: 44px; /* 接地位置 */
+            left: 30px; /* スマホ用に少し左に寄せる */
             background: transparent;
             box-shadow: 
-                /* 頭部 */
                 28px 0px var(--dino-color), 32px 0px var(--dino-color), 36px 0px var(--dino-color), 40px 0px var(--dino-color), 44px 0px var(--dino-color),
-                28px 4px var(--dino-color), 32px 4px transparent, 36px 4px var(--dino-color), 40px 4px var(--dino-color), 44px 4px var(--dino-color), /* 目 */
+                28px 4px var(--dino-color), 32px 4px transparent, 36px 4px var(--dino-color), 40px 4px var(--dino-color), 44px 4px var(--dino-color),
                 28px 8px var(--dino-color), 32px 8px var(--dino-color), 36px 8px var(--dino-color), 40px 8px var(--dino-color), 44px 8px var(--dino-color),
                 28px 12px var(--dino-color), 32px 12px var(--dino-color), 36px 12px var(--dino-color),
                 28px 16px var(--dino-color), 32px 16px var(--dino-color), 36px 16px var(--dino-color), 40px 16px var(--dino-color),
-                /* 首と胴体 */
                 20px 12px var(--dino-color), 24px 12px var(--dino-color),
                 16px 16px var(--dino-color), 20px 16px var(--dino-color), 24px 16px var(--dino-color),
                 12px 20px var(--dino-color), 16px 20px var(--dino-color), 20px 20px var(--dino-color), 24px 20px var(--dino-color), 28px 20px var(--dino-color),
                 8px 24px var(--dino-color), 12px 24px var(--dino-color), 16px 24px var(--dino-color), 20px 24px var(--dino-color), 24px 24px var(--dino-color), 28px 24px var(--dino-color),
                 4px 28px var(--dino-color), 8px 28px var(--dino-color), 12px 28px var(--dino-color), 16px 28px var(--dino-color), 20px 28px var(--dino-color), 24px 28px var(--dino-color),
                 4px 32px var(--dino-color), 8px 32px var(--dino-color), 12px 32px var(--dino-color), 16px 32px var(--dino-color), 20px 32px var(--dino-color),
-                /* 前足 */
                 28px 24px var(--dino-color), 28px 28px var(--dino-color), 32px 28px var(--dino-color),
-                /* 尻尾 */
                 0px 16px var(--dino-color),
                 0px 20px var(--dino-color), 4px 20px var(--dino-color),
                 4px 24px var(--dino-color), 8px 24px var(--dino-color),
-                /* 後足 */
                 12px 36px var(--dino-color), 16px 36px var(--dino-color),
                 12px 40px var(--dino-color), 20px 40px var(--dino-color);
             z-index: 10;
@@ -121,19 +118,21 @@
 
         @keyframes jump {
             0% { transform: translateY(0); }
-            30% { transform: translateY(-100px); }
-            70% { transform: translateY(-100px); }
+            30% { transform: translateY(-90px); }
+            70% { transform: translateY(-90px); }
             100% { transform: translateY(0); }
         }
 
+        /* --- サボテン：シンプルな十字型を完全再現 --- */
         #cactus {
-            width: 5px; 
-            height: 5px;
+            width: 4.5px; /* 隙間防止のため少し重ねる */
+            height: 4.5px;
             position: absolute;
-            bottom: 38px; 
+            bottom: 38px; /* 接地位置 */
             right: -24px;
             background: transparent;
             box-shadow: 
+                /* 中央の幹 */
                 8px 0px var(--cactus-color), 12px 0px var(--cactus-color),
                 8px 4px var(--cactus-color), 12px 4px var(--cactus-color),
                 8px 8px var(--cactus-color), 12px 8px var(--cactus-color),
@@ -144,22 +143,24 @@
                 8px 28px var(--cactus-color), 12px 28px var(--cactus-color),
                 8px 32px var(--cactus-color), 12px 32px var(--cactus-color),
                 8px 36px var(--cactus-color), 12px 36px var(--cactus-color),
+                /* 左側の枝 */
                 0px 8px var(--cactus-color), 4px 8px var(--cactus-color),
                 0px 12px var(--cactus-color), 4px 12px var(--cactus-color),
                 0px 16px var(--cactus-color), 4px 16px var(--cactus-color),
                 0px 20px var(--cactus-color), 4px 20px var(--cactus-color),
-                4px 24px var(--cactus-color), 8px 24px var(--cactus-color),
+                4px 24px var(--cactus-color), 8px 24px var(--cactus-color), /* 幹への結合部 */
+                /* 右側の枝 */
                 16px 12px var(--cactus-color), 20px 12px var(--cactus-color),
                 16px 16px var(--cactus-color), 20px 16px var(--cactus-color),
                 16px 20px var(--cactus-color), 20px 20px var(--cactus-color),
-                12px 24px var(--cactus-color), 16px 24px var(--cactus-color);
+                12px 24px var(--cactus-color), 16px 24px var(--cactus-color); /* 幹への結合部 */
             animation: move 1.6s infinite linear;
             z-index: 10;
         }
 
         @keyframes move {
-            0% { right: -24px; }
-            100% { right: 100%; }
+            0% { right: -30px; }
+            100% { right: 110%; }
         }
 
         #game-over-screen {
@@ -176,6 +177,9 @@
             color: white;
             z-index: 30;
         }
+
+        h1 { font-size: 24px; margin: 0; }
+        .instructions { font-size: 12px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -195,11 +199,11 @@
 
         <div id="game-over-screen">
             <h1>GAME OVER</h1>
-            <p style="color: white;">Press Space to Restart</p>
+            <p class="instructions" style="color: white;">Tap to Restart</p>
         </div>
     </div>
     
-    <p>Press Space or Click to Jump!</p>
+    <p class="instructions">Press Space or Tap to Jump!</p>
 
     <script>
         const dino = document.getElementById("dino");
@@ -208,7 +212,6 @@
         const gameOverScreen = document.getElementById("game-over-screen");
         const scoreElement = document.getElementById("score");
         const highScoreElement = document.getElementById("high-score");
-        const body = document.body;
 
         let isGameOver = false;
         let score = 0;
@@ -224,7 +227,7 @@
         }, 100);
 
         setInterval(() => {
-            if (!isGameOver) body.classList.toggle("night-mode");
+            if (!isGameOver) document.body.classList.toggle("night-mode");
         }, 15000); 
 
         function handleAction() {
@@ -242,39 +245,58 @@
             }
         }
 
+        // キーボード操作
         document.addEventListener("keydown", (e) => {
             if (e.code === "Space") {
                 e.preventDefault();
                 handleAction();
             }
         });
+
+        // スマホのタップ操作（画面全体）
+        document.addEventListener("touchstart", (e) => {
+            if (e.target.id === "billboard") return;
+            // ゲームオーバー時またはプレイ中のジャンプ。リロード時はpreventDefaultしない
+            if (isGameOver || !dino.classList.contains("animate-jump")) {
+                if (e.cancelable) e.preventDefault(); 
+            }
+            handleAction();
+        }, { passive: false });
+
+        // マウスクリック（PC用）
         document.addEventListener("mousedown", (e) => {
             if (e.target.id === "billboard") return;
             handleAction();
         });
 
+        // --- 当たり判定の修正 (高度なtransform解析ロジックに戻す) ---
         let checkDead = setInterval(() => {
             let dinoRect = dino.getBoundingClientRect();
             let cactusRect = cactus.getBoundingClientRect();
-            let dinoVisualWidth = 48; // 再現した恐竜の幅
+            
+            // 恐竜の見た目の幅（box-shadowの描画範囲）
+            let dinoVisualWidth = 48;
+            // サボテンの見た目の幅（box-shadowの描画範囲）
             let cactusVisualWidth = 24;
 
+            // ジャンプのtransform量を解析して高さを計算
             let dinoStyle = window.getComputedStyle(dino);
             let dinoTransform = dinoStyle.getPropertyValue("transform");
             let translateY = 0;
             if (dinoTransform !== "none") {
                 let values = dinoTransform.split('(')[1].split(')')[0].split(',');
-                translateY = parseInt(values[5]);
+                translateY = parseInt(values[5]); // matrixのtranslateY成分
             }
 
-            // X軸：恐竜の体とサボテンの衝突判定
-            let isHitX = cactusRect.left < dinoRect.left + dinoVisualWidth - 10 && 
+            // X軸の判定：dinoRect.left（box-shadowの起点）基準
+            let overlapX = cactusRect.left < dinoRect.left + dinoVisualWidth - 10 && 
                          cactusRect.left + cactusVisualWidth > dinoRect.left + 5;
             
-            // Y軸：足元がサボテンに触れる高さか
-            let isHitY = translateY > -36;
+            // Y軸の判定：transform分を考慮 (地面から44pxがdinoの足元、cactusの高さが40px)
+            // 接地位置を下げたため判定も微調整 (-36)
+            let overlapY = translateY > -36;
 
-            if (isHitX && isHitY) {
+            if (overlapX && overlapY) {
                 isGameOver = true;
                 cactus.style.animation = "none";
                 cactus.style.left = window.getComputedStyle(cactus).getPropertyValue("left");
